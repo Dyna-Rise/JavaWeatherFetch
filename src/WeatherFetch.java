@@ -7,6 +7,11 @@
  *
  * @author dynarise
  */
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 public class WeatherFetch extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(WeatherFetch.class.getName());
@@ -129,14 +134,70 @@ public class WeatherFetch extends javax.swing.JFrame {
 
     private void GetWeather(){
         //特定のサイトのURLを用意
+        //都市情報をコンボボックスから取得
+        String city = comboLocation.getSelectedItem().toString();
+        //必要なAPIキー
+        String apiKey = "a4cec97dcaf5d01939bc2ca7cef15e9f";
+        //必要なサイトURLにまとめる
+        String apiUrl = "https://api.openweathermap.org/data/2.5/weather?q=" + city
+                + ",jp&appid=" + apiKey + "&lang=ja&units=metric";
+
+        try{
+            //URLオブジェクトを生成（特定の文字列からどれがプロトコル、どれがホストで～）
+            URL url = new URL(apiUrl);
+            //単に通信しています
+            //HTTP通信であるということを明確にした型として接続情報を取得
+            HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+            conn.setRequestMethod("GET"); //サイトの本文情報をGET方式で獲得
+            
+            //getInputStream バイトコードとして取り出し
+            //UTF-8情報に変換する InputStreamReader
+            //バッファーとして格納
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(),"UTF-8"));
+            
+            StringBuilder response = new StringBuilder();
+            String line;
+            
+            //バッファーに格納された複数行にわたる情報を一行ずつ抽出
+            while((line = reader.readLine()) != null){
+                //抽出した一行をresponseに格納していく
+                response.append(line);
+            }
+            
+            //StringBuilderの機能を活用して集めたresponseの内容を文字列に変換
+            //文字列 res変数にサイトの本文情報を獲得
+            String res = response.toString();
+            
+            //天気を取得 (自作メソッドを使う）
+            String weather = parseWeather(res);
+            
+            //取得した天気をラベルに貼る
+            labelWeather.setText(city + "の天気は" + weather + "です");
+            
+        } catch (Exception ex){
+            ex.printStackTrace();
+            labelWeather.setText("天気の取得に失敗しました");
+        }
+            
+    }
+    
+    //引数に与えられた情報から天気だけを抽出するメソッド
+    private String parseWeather(String res){
+        String keyword = "\"description\":\"";
         
-        //そこにアクセス
-        
-        //そこから情報を取得
-        
-        
-        //取得した情報をラベルに貼る
-        
+        //keywordがあった場合、何番目の文字から始まるのか番号取得（なかったら-1)
+        int index  = res.indexOf(keyword);
+        if(index != -1){
+            //キーワードの先頭番号からキーワードの文字数分だけ進めた場所がスタート
+            int start = index + keyword.length();
+            //スタート位置からはじめに"がくるまでの番号 （なかったら-1)
+            int end = res.indexOf("\"",start);
+            if(end != -1){
+                //startからendまでの文字列を切り抜く
+                return res.substring(start,end);
+            }
+        }        
+        return "不明";               
     }
 
 }
